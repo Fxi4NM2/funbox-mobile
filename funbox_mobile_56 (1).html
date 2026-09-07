@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Funbox 戰鬥陀螺 56 組抽獎助手</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #f4f5f7;
+    color: #222;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "PingFang TC", "Microsoft JhengHei", sans-serif;
+  }
+  .wrap {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 14px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 3px 16px rgba(0,0,0,.10);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 23px;
+    text-align: center;
+    margin: 2px 0 6px;
+  }
+  .sub {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+  .progress {
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    margin: 6px 0;
+  }
+  .current {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    background: #fff0a8;
+    border-radius: 12px;
+    padding: 11px;
+    margin: 10px 0 14px;
+  }
+  button {
+    width: 100%;
+    border: 0;
+    border-radius: 13px;
+    padding: 14px 12px;
+    margin: 5px 0;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .open { background: #222; color: #fff; }
+  .done { background: #198754; color: #fff; }
+  .next { background: #e9ecef; color: #222; }
+  .reset { background: #f1f1f1; color: #555; font-size: 15px; }
+  .nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .nav button { margin: 5px 0; }
+  .list-title {
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    margin: 5px 0;
+    border-radius: 10px;
+    background: #f3f3f3;
+    font-size: 15px;
+  }
+  .item.active { background: #fff0a8; font-weight: 800; }
+  .item.done { background: #e7f6ed; color: #176b3a; }
+  .item span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hint {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.55;
+    margin-top: 10px;
+  }
+  .small {
+    font-size: 13px;
+    color: #777;
+    text-align: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <h1>🎯 Funbox 戰鬥陀螺</h1>
+    <div class="sub">手機一頁式・56 組連續抽獎助手</div>
+
+    <div id="progress" class="progress">第 1 / 56 組</div>
+    <div id="current" class="current">目前：UX-21</div>
+
+    <button class="open" onclick="openCurrent()">🔗 開啟本次抽獎</button>
+    <button class="done" onclick="completeAndNext()">✅ 完成這次，下一組</button>
+
+    <div class="nav">
+      <button class="next" onclick="go(-1)">⬅️ 上一組</button>
+      <button class="next" onclick="go(1)">下一組 ➡️</button>
+    </div>
+
+    <button class="reset" onclick="resetAll()">🔄 從第 1 組重新開始</button>
+
+    <div class="hint">
+      使用方式：先按「開啟本次抽獎」，完成 LINE / Funbox 正常流程後，
+      回到這個頁面，再按「完成這次，下一組」。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="list-title">📋 56 組抽獎清單</div>
+    <div id="list"></div>
+  </div>
+
+</div>
+
+<script>
+const LIFF_ID = "1654883387-DxN9w07M";
+const BASE = "https://liff.line.me/" + LIFF_ID;
+
+const TARGETS = [
+  {name:"UX-21", path:"/c/01M1JN7A7TAKSNSN0CT19561KK"},
+  {name:"UX-03", path:"/c/01M1GAZ3K5QRZ96T6C6K20321D"},
+  {name:"UX-15", path:"/c/01M1E8V9D7RE640ET4GS36MM3F"},
+  {name:"UX-20", path:"/c/01M1E95740HWZS1YWAY17R94BM"},
+  {name:"CX-00", path:"/c/01M1E0SHHT8GB2VR5KGJ0PS1F5"},
+  {name:"G4-70I", path:"/c/01M1E12Y9E0NSDADZ934XZ4P2M"},
+
+  {name:"新增抽獎 01", path:"/c/01M1JYWP1PQB4Z2WGT08Z06Q25"},
+  {name:"新增抽獎 02", path:"/c/01M1JZBP93M52PM66Z5C44VQ9Z"},
+  {name:"新增抽獎 03", path:"/c/01M1GP9P81Z63TY3VMMBYVW8F5"},
+  {name:"新增抽獎 04", path:"/c/01M1GT53W435V6Z4FBA0FZD9NJ"},
+  {name:"新增抽獎 05", path:"/c/01M1KD1VFVM169T3JAZ73D8KT9"},
+  {name:"新增抽獎 06", path:"/c/01M1JYVH0XW0PBFT0Q8ET2FK4Z"},
+  {name:"新增抽獎 07", path:"/c/01M1GW5BGJT1G0Y5Z66MDGQX5V"},
+  {name:"新增抽獎 08", path:"/c/01M1GW128BRMQBPHJFXS5KMHJJ"},
+  {name:"新增抽獎 09", path:"/c/01M1GXQW3BQYGTBQMADAA8NNWH"},
+  {name:"新增抽獎 10", path:"/c/01M1E040J3Z6Y2JPRBE90YHZ1C"},
+  {name:"新增抽獎 11", path:"/c/01M1E08QAHE168CC8Y03TCBKDH"},
+  {name:"新增抽獎 12", path:"/c/01M1K2WGDB49FJ04SCJXB7YMC3"},
+  {name:"新增抽獎 13", path:"/c/01M1KDFGYDAP3WRG1WZ7YYGHF3"},
+
+  {name:"新增抽獎 14", path:"/c/01M1K74SB6KX9WR8EB4STG5D2K"},
+  {name:"新增抽獎 15", path:"/c/01M1K6PKZC2D623HEVRSA2GJBJ"},
+  {name:"新增抽獎 16", path:"/c/01M1E3K17EMBQAA8RDF4DCTYPW"},
+  {name:"新增抽獎 17", path:"/c/01M1GR640P35AQPQHNRA1228FV"},
+  {name:"新增抽獎 18", path:"/c/01M1GQMJ4320XT9A0B4SHAXQRR"},
+  {name:"新增抽獎 19", path:"/c/01M1KJM830Z1YZG20M4HTK4F6W"},
+  {name:"新增抽獎 20", path:"/c/01M1KM8A5Z3648R9G1NM3TDFR5"},
+  {name:"新增抽獎 21", path:"/c/01M1K6MTHV92B3N804JGT9VQD1"},
+  {name:"新增抽獎 22", path:"/c/01M1K5MSSYK7GWFHKRNVDN59YN"},
+  {name:"新增抽獎 23", path:"/c/01M1G9X8V29R2XH76RCWXYED5P"},
+  {name:"新增抽獎 24", path:"/c/01M1G9AKTSK438YM3R839RBV9P"},
+  {name:"新增抽獎 25", path:"/c/01M1JTP81DNY4GD7R650KNETSC"},
+  {name:"新增抽獎 26", path:"/c/01M1JXEBQZAW0Q6992TH62CZ98"},
+  {name:"新增抽獎 27", path:"/c/01M1JW6MD8ZQYSQ81A78A0X41P"},
+  {name:"新增抽獎 28", path:"/c/01M1JVZ4VTX23R3NEQ7DSBBHWT"},
+  {name:"新增抽獎 29", path:"/c/01M1K6XPM119NMTQVMFWMHZTAC"},
+  {name:"新增抽獎 30", path:"/c/01M1K7097ZSKZ5Q29PPENWFDT7"},
+  {name:"新增抽獎 31", path:"/c/01M1K4XFSJJ52TDFR2G4X9M8RQ"},
+  {name:"新增抽獎 32", path:"/c/01M1K4R00TYXKE6X9BJVYADCQZ"},
+
+  {name:"新增抽獎 33", path:"/c/01M1FTTWXRK5J4P8Q9HX8MQ426"},
+  {name:"新增抽獎 34", path:"/c/01M1GZXV3356WB0FFG91BKERNK"},
+  {name:"新增抽獎 35", path:"/c/01M1GYB0TYYQK1EBFW4E5AGYC7"},
+  {name:"新增抽獎 36", path:"/c/01M1H0SXV2Q0KJ0QXD9WEB5F1V"},
+  {name:"新增抽獎 37", path:"/c/01M1H0J3GNYJ6WCF6BCYMG3XAC"},
+  {name:"新增抽獎 38", path:"/c/01M1JMTYZREB1B17A8ZR78CDYT"},
+  {name:"新增抽獎 39", path:"/c/01M1KFFECQKRWHJK9N7TNSXFSD"},
+  {name:"新增抽獎 40", path:"/c/01M1K27MSFGD0H8PA5KXQPDCC3"},
+  {name:"新增抽獎 41", path:"/c/01M1GKFGE5EMR2W31PN8QK9WRN"},
+  {name:"新增抽獎 42", path:"/c/01M1GKH0ZYMQ2Z3X35SMR231KZ"},
+  {name:"新增抽獎 43", path:"/c/01M1KJWQBWF63JJVYPS674D9FH"},
+  {name:"新增抽獎 44", path:"/c/01M1KJ6CXYH4TVZ3XPSWE5X863"},
+  {name:"新增抽獎 45", path:"/c/01M1K3Y0BYCYPDF824MA1ZWSB5"},
+  {name:"新增抽獎 46", path:"/c/01M1K3SPGHX4Y177DEF2B4PVZW"},
+  {name:"新增抽獎 47", path:"/c/01M1JN7YM8C4XB4MSFXHBK3R5R"},
+  {name:"新增抽獎 48", path:"/c/01M1JP1B9N2M2HV1C54MYB3Z0A"},
+  {name:"新增抽獎 49", path:"/c/01M1G4HVXNQC3P488WFPKDWDCF"},
+  {name:"新增抽獎 50", path:"/c/01M1G4ZQFAKC93THSM3JAN64CG"}
+];
+
+const KEY = "funbox_mobile_56_index";
+let index = Number(localStorage.getItem(KEY) || 0);
+
+if (!Number.isInteger(index) || index < 0 || index >= TARGETS.length) index = 0;
+
+function save() {
+  localStorage.setItem(KEY, String(index));
+}
+
+function render() {
+  document.getElementById("progress").textContent =
+    `第 ${index + 1} / ${TARGETS.length} 組`;
+
+  document.getElementById("current").textContent =
+    `目前：${TARGETS[index].name}`;
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  TARGETS.forEach((item, i) => {
+    const row = document.createElement("div");
+    row.className = "item";
+    if (i === index) row.classList.add("active");
+    if (i < index) row.classList.add("done");
+
+    const status = i < index ? "✅" : (i === index ? "👉" : "○");
+
+    row.innerHTML =
+      `<span>${i + 1}. ${item.name}</span><span>${status}</span>`;
+
+    row.onclick = () => {
+      index = i;
+      save();
+      render();
+      window.scrollTo({top:0, behavior:"smooth"});
+    };
+
+    list.appendChild(row);
+  });
+}
+
+function openCurrent() {
+  window.location.href = BASE + TARGETS[index].path;
+}
+
+function completeAndNext() {
+  if (index >= TARGETS.length - 1) {
+    alert("🎉 56 組全部完成！");
+    return;
+  }
+
+  index++;
+  save();
+  render();
+
+  // 直接開下一組 LIFF
+  window.location.href = BASE + TARGETS[index].path;
+}
+
+function go(step) {
+  const next = index + step;
+
+  if (next < 0) {
+    alert("目前已經是第 1 組");
+    return;
+  }
+
+  if (next >= TARGETS.length) {
+    alert("🎉 已經是第 56 組");
+    return;
+  }
+
+  index = next;
+  save();
+  render();
+}
+
+function resetAll() {
+  if (!confirm("確定要從第 1 組重新開始嗎？")) return;
+
+  index = 0;
+  save();
+  render();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+render();
+</script>
+</body>
+</html>
